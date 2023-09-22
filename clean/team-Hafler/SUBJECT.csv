@@ -1,0 +1,13 @@
+,subject_id,source_subject_id,biobank_name,organism,sex,age_at_collection,race,ethnicity,duration_pmi,primary_diagnosis,primary_diagnosis_text
+0,HC01,HSDG07,NKI/NYUGSOM,Human,Female,81,Black or African American,B,8.0,Normal control,
+1,HC02,HSDG13,NKI/NYUGSOM,Human,Female,65,White,W,19.0,Normal control,
+2,HC03,HSDG101,NKI/NYUGSOM,Human,Female,72,White,W,7.0,Normal control,
+3,HC04,HSDG10,NKI/NYUGSOM,Human,Male,70,White,W,10.5,Normal control,
+4,HC05,HSDG30,NKI/NYUGSOM,Human,Male,63,Black or African American,B,5.0,Normal control,
+5,HC06,HSDG99,NKI/NYUGSOM,Human,Male,69,White,W,11.0,Normal control,
+6,PD01,HSDG151,NKI/NYUGSOM,Human,Female,81,White,W,8.0,Idiopathic Parkinson's disease,
+7,PD02,HSDG197,NKI/NYUGSOM,Human,Female,72,White,W,6.0,Idiopathic Parkinson's disease,
+8,PD03,HSDG208,NKI/NYUGSOM,Human,Female,77,White,W,7.0,Idiopathic Parkinson's disease,
+9,PD04,HSDG142,NKI/NYUGSOM,Human,Male,79,White,W,5.5,Idiopathic Parkinson's disease,
+10,PD05,HSDG148,NKI/NYUGSOM,Human,Male,96,White,W,6.0,Idiopathic Parkinson's disease,
+11,PD06,HSDG199,NKI/NYUGSOM,Human,Male,86,White,W,13.0,Idiopathic Parkinson's disease,
