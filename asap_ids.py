@@ -1,6 +1,6 @@
 import pandas as pd
 import json
-import ijson
+# import ijson
 from pathlib import Path
 
 
@@ -46,21 +46,21 @@ def load_id_mapper(id_mapper_path:Path) -> dict:
     return id_mapper
     
 
+# # don't need the ijson version for now
+# def load_big_id_mapper(id_mapper_path:Path, ids:list) -> dict:
+#     """ load the id mapper from the json file"""
+#     id_mapper = {}
 
-def load_big_id_mapper(id_mapper_path:Path, ids:list) -> dict:
-    """ load the id mapper from the json file"""
-    id_mapper = {}
-
-    if Path.exists(id_mapper_path):
-        with open(id_mapper_path, 'r') as f:
-            for k, v in ijson.kvitems(f, ''):
-                if k in ids:
-                    id_mapper.update({k:v})    
-        print(f"id_mapper loaded from {id_mapper_path}")
-    else:
-        print(f"id_mapper not found at {id_mapper_path}")
+#     if Path.exists(id_mapper_path):
+#         with open(id_mapper_path, 'r') as f:
+#             for k, v in ijson.kvitems(f, ''):
+#                 if k in ids:
+#                     id_mapper.update({k:v})    
+#         print(f"id_mapper loaded from {id_mapper_path}")
+#     else:
+#         print(f"id_mapper not found at {id_mapper_path}")
             
-    return id_mapper
+#     return id_mapper
 
 def write_id_mapper(id_mapper, id_mapper_path):
     """ write the id mapper to the json file"""
@@ -165,7 +165,11 @@ def generate_asap_sample_ids(subj_id_mapper:dict,
 
 
 
-def process_meta_files(table_path, CDE_path, subject_mapper_path='subj_map.json', sample_mapper_path='samp_map.json'):
+def process_meta_files(table_path, 
+                       CDE_path, 
+                       subject_mapper_path='subj_map.json', 
+                       sample_mapper_path='samp_map.json', 
+                       export_path = None):
     """
     read in the meta data table, generate new ids, update the id_mapper, write the updated id_mapper to file
     """
@@ -250,21 +254,24 @@ def process_meta_files(table_path, CDE_path, subject_mapper_path='subj_map.json'
     #     clinpath_df['ASAP_subject_id'] = clinpath_df['subject_id'].map(id_mapper)
 
     # export updated tables
-    asap_tables_path = Path.cwd() / "ASAP_tables" / table_path.name.split("-")[1]
-    if  not asap_tables_path.exists():
-        asap_tables_path.mkdir()
+    if export_path is not None:
+        asap_tables_path = Path.cwd() / "ASAP_tables" / table_path.name.split("-")[1]
+        print(f"exporting to {asap_tables_path}")
+        if  not asap_tables_path.exists():
+            asap_tables_path.mkdir()
 
-    if study_path.exists():
-        study_df.to_csv(asap_tables_path / study_path.name)
-    if protocol_path.exists():
-        protocol_df.to_csv(asap_tables_path / protocol_path.name)
-    if subject_path.exists():
-        subject_df.to_csv(asap_tables_path / subject_path.name)
-    if sample_path.exists():
-        sample_df.to_csv(asap_tables_path / sample_path.name)
-    if clinpath_path.exists():
-        clinpath_df.to_csv(asap_tables_path / clinpath_path.name)
-
+        if study_path.exists():
+            study_df.to_csv(asap_tables_path / study_path.name)
+        if protocol_path.exists():
+            protocol_df.to_csv(asap_tables_path / protocol_path.name)
+        if subject_path.exists():
+            subject_df.to_csv(asap_tables_path / subject_path.name)
+        if sample_path.exists():
+            sample_df.to_csv(asap_tables_path / sample_path.name)
+        if clinpath_path.exists():
+            clinpath_df.to_csv(asap_tables_path / clinpath_path.name)
+    else:
+        print("no ASAP_tables with ASAP_ID's exported")
 
     # write the updated id_mapper to file
     write_id_mapper(subj_id_mapper, subject_mapper_path)
@@ -285,17 +292,31 @@ if __name__ == "__main__":
     dtypes_dict = get_dtypes_dict(CDE)
 
     ## add team Lee
-    export_root = Path.cwd() / "clean/team-Lee"
+    table_root = Path.cwd() / "clean/team-Lee"
     subject_mapper_path = Path.cwd() / "ASAP_subj_map.json"
     sample_mapper_path = Path.cwd() / "ASAP_samp_map.json"
-    process_meta_files(export_root, CDE_path, subject_mapper_path, sample_mapper_path)
+    export_root = Path.cwd() / "ASAP_tables" 
+    
+    process_meta_files(table_root, 
+                       CDE_path, 
+                       subject_mapper_path, 
+                       sample_mapper_path, 
+                       export_path=export_root)
 
     ## add team Hafler
-    export_root = Path.cwd() / "clean/team-Hafler"
-    process_meta_files(export_root, CDE_path, subject_mapper_path, sample_mapper_path)
+    table_root = Path.cwd() / "clean/team-Hafler"
+    process_meta_files(table_root, 
+                       CDE_path, 
+                       subject_mapper_path, 
+                       sample_mapper_path, 
+                       export_path=export_root)
 
     ## add team Hardy
-    export_root = Path.cwd() / "clean/team-Hardy"
-    process_meta_files(export_root, CDE_path, subject_mapper_path, sample_mapper_path)
+    table_root = Path.cwd() / "clean/team-Hardy"
+    process_meta_files(table_root, 
+                       CDE_path, 
+                       subject_mapper_path, 
+                       sample_mapper_path, 
+                       export_path=export_root)
 
 
