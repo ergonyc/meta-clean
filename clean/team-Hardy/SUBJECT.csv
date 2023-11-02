@@ -1,0 +1,65 @@
+,subject_id,source_subject_id,biobank_name,organism,sex,age_at_collection,race,ethnicity,duration_pmi,primary_diagnosis,primary_diagnosis_text
+0,babom,P2/14,QSBB_UK,Human,Female,78,,,46.0,Idiopathic PD,clinpath info: PDD | PD (with dementia)
+1,borah,P4/11,QSBB_UK,Human,Male,63,,,37.0,Idiopathic PD,clinpath info: PD | PD
+2,bovon,P95/10,QSBB_UK,Human,Male,81,,,59.5,Idiopathic PD,clinpath info: PD | NA
+3,davof,P80/11,QSBB_UK,Human,Male,80,,,100.0,Idiopathic PD,clinpath info: PD | PD
+4,dudug,P82/10,QSBB_UK,Human,Female,87,,,84.0,No PD nor other neurological disorder,clinpath info: Control | Control
+5,dusuh,P69/18,QSBB_UK,Human,Female,85,,,27.5,Idiopathic PD,clinpath info: PD | MSA-P
+6,favam,P56/18,QSBB_UK,Human,Female,103,,,26.0,No PD nor other neurological disorder,clinpath info: Control | Control
+7,fikon,P12/11,QSBB_UK,Human,Female,81,,,80.0,Idiopathic PD,clinpath info: PDD | PD with dementia
+8,fugib,P57/18,QSBB_UK,Human,Male,101,,,60.5,No PD nor other neurological disorder,clinpath info: Control | Control
+9,fusaz,P52/13,QSBB_UK,Human,Female,93,,,51.5,Idiopathic PD,clinpath info: PD | PD
+10,gabas,P16/19,QSBB_UK,Human,Male,97,,,38.0,Alzheimer’s disease,"clinpath info: AGD, Low level AD | NA"
+11,gitok,P32/09,QSBB_UK,Human,Female,87,,,41.0,No PD nor other neurological disorder,clinpath info: Control | Control
+12,givak,P59/09,QSBB_UK,Human,Male,82,,,80.0,Idiopathic PD,clinpath info: PDD | PD
+13,gizav,P32/10,QSBB_UK,Human,Male,83,,,42.0,Idiopathic PD,clinpath info: PDD | PDD
+14,godin,P9/15,QSBB_UK,Human,Male,72,,,100.0,Idiopathic PD,clinpath info: PDD | PD (with dementia)
+15,gofip,P83/16,QSBB_UK,Human,Female,76,,,76.0,Idiopathic PD,clinpath info: PDD | PD (with dementia)
+16,gosot,P54/09,QSBB_UK,Human,Male,80,,,32.5,Idiopathic PD,clinpath info: PD | PSP
+17,gotar,P41/09,QSBB_UK,Human,Male,95,,,89.0,No PD nor other neurological disorder,clinpath info: Control | Control
+18,gusil,P61/18,QSBB_UK,Human,Male,83,,,87.0,Idiopathic PD,clinpath info: PD | PSP
+19,hazim,P43/13,QSBB_UK,Human,Male,88,,,97.0,No PD nor other neurological disorder,"clinpath info: Control / Path ageing, CAA | Control"
+20,hibah,P23/12,QSBB_UK,Human,Female,83,,,67.5,Idiopathic PD,clinpath info: PD | fPD
+21,himuv,P82/12,QSBB_UK,Human,Male,69,,,61.0,Idiopathic PD,clinpath info: PDD | Atypical Parkinson's and cognitive decline
+22,huzus,P15/10,QSBB_UK,Human,Male,69,,,168.0,No PD nor other neurological disorder,clinpath info: Control | Control
+23,janas,P51/08,QSBB_UK,Human,Female,82,,,91.5,No PD nor other neurological disorder,clinpath info: Control | Control
+24,jopin,P67/16,QSBB_UK,Human,Female,68,,,31.0,Idiopathic PD,clinpath info: PDD | PD with dementia
+25,junos,P5/13,QSBB_UK,Human,Male,89,,,37.5,No PD nor other neurological disorder,clinpath info: Control / Path ageing | Control
+26,juzis,P13/09,QSBB_UK,Human,Male,80,,,88.5,Idiopathic PD,clinpath info: PDD | IPD/Lewy body dementia
+27,juzot,P13/17,QSBB_UK,Human,Male,83,,,95.5,Idiopathic PD,clinpath info: PDD | PD (with dementia)
+28,kazik,P68/05,QSBB_UK,Human,Male,66,,,48.0,Idiopathic PD,clinpath info: PDD | IPD
+29,komiz,P61/09,QSBB_UK,Human,Female,99,,,32.5,No PD nor other neurological disorder,clinpath info: Control | Control
+30,kutij,P47/14,QSBB_UK,Human,Female,87,,,42.5,No PD nor other neurological disorder,"clinpath info: Control, Alzheimer`s disease (intermediate level AD pathological change) | Control"
+31,lafim,P49/16,QSBB_UK,Human,Male,81,,,73.0,Idiopathic PD,clinpath info: PD | PD
+32,larid,P84/08,QSBB_UK,Human,Female,85,,,84.0,Idiopathic PD,clinpath info: PD | PD
+33,libat,P27/11,QSBB_UK,Human,Male,77,,,98.0,Idiopathic PD,clinpath info: PDD | Atypical parkinsonism PSP
+34,ligoh,P22/12,QSBB_UK,Human,Male,85,,,32.5,Idiopathic PD,clinpath info: PDD | PD (with dementia)
+35,litan,P26/11,QSBB_UK,Human,Female,73,,,24.0,No PD nor other neurological disorder,clinpath info: Pathological ageing | Control
+36,lonib,P25/13,QSBB_UK,Human,Male,81,,,39.0,Idiopathic PD,clinpath info: PDD | PD (with dementia)
+37,losuj,P54/15,QSBB_UK,Human,Female,88,,,32.5,No PD nor other neurological disorder,"clinpath info: Control, Alzheimer`s disease (intermediate level AD pathological change) | Control"
+38,lutit,P47/05,QSBB_UK,Human,Female,75,,,48.0,Idiopathic PD,clinpath info: PD | IPD
+39,mivog,P56/08,QSBB_UK,Human,Male,65,,,71.0,Idiopathic PD,clinpath info: PDD | PD
+40,mofiz,P48/20,QSBB_UK,Human,Female,76,,,77.5,Idiopathic PD,clinpath info: PDD | NA
+41,nafam,P17/16,QSBB_UK,Human,Female,84,,,53.5,No PD nor other neurological disorder,clinpath info: Control | Control
+42,napim,P30/14,QSBB_UK,Human,Male,91,,,26.0,Idiopathic PD,clinpath info: PDD | PD (with dementia)
+43,nigot,P78/18,QSBB_UK,Human,Male,73,,,92.5,Idiopathic PD,clinpath info: PDD | PDD
+44,nobin,P46/10,QSBB_UK,Human,Female,83,,,41.0,Idiopathic PD,clinpath info: PDD | PD (with dementia)
+45,nugiv,P67/10,QSBB_UK,Human,Female,92,,,64.0,No PD nor other neurological disorder,clinpath info: Control | Control
+46,numuk,P43/17,QSBB_UK,Human,Female,70,,,25.0,Idiopathic PD,clinpath info: PD | PD
+47,pahih,P58/09,QSBB_UK,Human,Male,71,,,94.5,Idiopathic PD,clinpath info: PDD | PD
+48,pisud,P41/19,QSBB_UK,Human,Male,74,,,38.5,Other neurological disorder,"clinpath info: Cerebrovascular disease (small vessel) | Uncertain, possible neurodegenerative disease"
+49,pobod,P75/08,QSBB_UK,Human,Male,87,,,39.5,No PD nor other neurological disorder,clinpath info: Control | Control
+50,posaj,P47/11,QSBB_UK,Human,Female,79,,,79.0,No PD nor other neurological disorder,clinpath info: Control | Control
+51,rajir,P38/09,QSBB_UK,Human,Male,81,,,45.0,Idiopathic PD,clinpath info: PD | PD
+52,rijof,P8/18,QSBB_UK,Human,Male,84,,,71.0,Idiopathic PD,clinpath info: PD | PD
+53,rotot,P62/15,QSBB_UK,Human,Male,84,,,29.0,Idiopathic PD,clinpath info: PD | MSA
+54,rusiz,P11/14,QSBB_UK,Human,Female,75,,,100.0,Idiopathic PD,clinpath info: PD | PD with dementia
+55,solal,P66/11,QSBB_UK,Human,Female,86,,,121.0,No PD nor other neurological disorder,clinpath info: Control | Control
+56,solav,P45/09,QSBB_UK,Human,Male,77,,,26.0,Idiopathic PD,clinpath info: PD | ?IPD/MSA
+57,vamat,P3/13,QSBB_UK,Human,Male,72,,,97.0,Idiopathic PD,clinpath info: PD | MSA
+58,viduj,P40/00,QSBB_UK,Human,Male,85,,,26.0,Idiopathic PD,clinpath info: PD | IPD
+59,vifiv,P48/15,QSBB_UK,Human,Male,84,,,79.0,No PD nor other neurological disorder,"clinpath info: Control, Cerebrovascular disease (small vessel) | Control"
+60,virod,P11/17,QSBB_UK,Human,Male,90,,,46.5,No PD nor other neurological disorder,"clinpath info: Control, Alzheimer`s disease (intermediate level AD pathological change) | Control"
+61,virut,P23/14,QSBB_UK,Human,Male,64,,,93.0,Idiopathic PD,clinpath info: PDD | PD
+62,zidip,P30/09,QSBB_UK,Human,Female,77,,,,Idiopathic PD,clinpath info: PD | PD
+63,zupam,P78/11,QSBB_UK,Human,Female,85,,,105.0,Idiopathic PD,clinpath info: PD | PD
