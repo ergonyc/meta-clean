@@ -133,7 +133,23 @@ def get_dtypes_dict(cde_df):
         
         # Set the data type to string for "String" and "Enum" fields
         if data_type in ["String", "Enum"]:
-            dtypes_dict[field_name] = str
+            dtypes_dict[field_name] = 'string'
+        # elif data_type == "Enum":
+        #     dtypes_dict[field_name] = 'category'
+        # elif data_type == "Integer":
+        #     dtypes_dict[field_name] = 'Int64'  # nullable integer
+        # elif data_type == "Float":
+        #     dtypes_dict[field_name] = 'Float64'  # nullable float
+
+        # # Set the data type to string for "String" and "Enum" fields
+        # if data_type == "String":
+        #     dtypes_dict[field_name] = str
+        # elif data_type == "Enum":
+        #     dtypes_dict[field_name] = 'category'
+        # elif data_type == "Integer":
+        #     dtypes_dict[field_name] = int
+        # elif data_type == "Float":
+        #     dtypes_dict[field_name] = float
     
     return dtypes_dict
 

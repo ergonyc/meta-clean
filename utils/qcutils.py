@@ -122,7 +122,7 @@ def force_enum_string(df_in:pd.DataFrame, df_name:str, CDE:pd.DataFrame) -> pd.D
     return df
 
 def reorder_table_to_CDE(df: pd.DataFrame, df_name:str, CDE: pd.DataFrame) -> pd.DataFrame:
-    """ convert table to CDE field order and create NULL (np.nan) entries columns for missing fields"""
+    """ convert table to CDE field order and create NULL (pd.NA) entries columns for missing fields"""
     col_order = CDE[CDE["Table"]==df_name].Field.tolist()
     
     df_out = pd.DataFrame()
@@ -131,8 +131,8 @@ def reorder_table_to_CDE(df: pd.DataFrame, df_name:str, CDE: pd.DataFrame) -> pd
         if col in df.columns:   
             df_out[col] = df[col]
         else:
-            df_out[col] = "" # np.nan doesn't work because it converts the whole column to float
-
+            df_out[col] = pd.NA # np.nan doesn't work because it converts the whole column to float
+            print(f"WARNING: {col} not found in {df_name} table.  Adding NULL column.")
     return df_out
 
 

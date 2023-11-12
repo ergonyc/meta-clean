@@ -2,7 +2,7 @@ import pandas as pd
 import json
 # import ijson
 from pathlib import Path
-
+import argparse
 
 # Function to read a table with the specified data types
 def read_meta_table(table_path,dtypes_dict):
@@ -14,6 +14,9 @@ def get_dtypes_dict(cde_df):
     # unnescessary.
     # # Filter the CDE data frame to get the fields and data types for the specified table
     # table_cde = cde_df[cde_df["Table"] == table_name]
+    
+    if cde_df is None:
+        return None
     
     # Initialize the data types dictionary
     dtypes_dict = {}
@@ -75,125 +78,316 @@ def write_id_mapper(id_mapper, id_mapper_path):
     return 0
 
 
-def generate_asap_subject_ids(subj_id_mapper:dict, 
-                              subject_df:pd.DataFrame) -> tuple[dict, pd.DataFrame, int]:
+def get_samp(v):
+    return int(v.split("_")[3].replace("s","")) 
+
+def get_id(v):
+    return v[:17] 
+
+def get_repn(v):
+    return int(v.split("_")[4].replace("r","")) 
+
+
+def generate_asap_subject_ids(asapid_mapper:dict,
+                             gp2id_mapper:dict,
+                             sourceid_mapper:dict, 
+                             subject_df:pd.DataFrame) -> tuple[dict,dict,dict,pd.DataFrame,int]:
     """
     generate new unique_ids for new subject_ids in subject_df table, 
     update the id_mapper with the new ids from the data table
 
-    return the updated id_mapper, updated subject_df, and the starting index for the new ids
+    return t
     """
+
     # extract the max value of the mapper's third (last) section ([2] or [-1]) to get our n
-    if bool(subj_id_mapper):
-        n = max([int(v.split("_")[2]) for v in subj_id_mapper.values() if v]) + 1
+    if bool(asapid_mapper):
+        n = max([int(v.split("_")[2]) for v in asapid_mapper.values() if v]) + 1
     else:
         n = 1
     nstart = n
-    df_nodups_wids = subject_df.copy()
+
+    # ids_df = subject_df[['subject_id','source_subject_id', 'AMPPD_id', 'GP2_id']].copy()
+    ids_df = subject_df.copy()
+
     # might want to use 'source_subject_id' instead of 'subject_id' since we want to find matches across teams
     # shouldn't actually matter but logically cleaner
-    uids = [str(id) for id in df_nodups_wids['subject_id'].unique()]
-    mapid = {}
-    for uid in uids:
-        mapid[uid]= n
-        n += 1
+    uniq_subj = ids_df['subject_id'].unique()
+    dupids_mapper = dict(zip(uniq_subj,
+                        [num + nstart for num in range(len(uniq_subj))] ))
 
-    df_nodups_wids['uid_idx'] = df_nodups_wids['subject_id'].map(mapid)
-    # make a new column with the ASAP_subject_id
-    # and insert it at the beginning of the dataframe
-    ASAP_subject_id = [f'{STUDY_PREFIX}{i:06}' for i in df_nodups_wids.uid_idx]
-    df_nodups_wids.insert(0, 'ASAP_subject_id', ASAP_subject_id)
+    n_asap_id_add = 0
+    n_gp2_id_add = 0
+    n_source_id_add = 0
 
-    df_nodups_wids['uid_idx_cumcount'] = df_nodups_wids.groupby('ASAP_subject_id').cumcount() + 1
-    asap_id_mapper = dict(zip(df_nodups_wids['subject_id'], df_nodups_wids['ASAP_subject_id']))
+    df_dup_chunks = []
+    id_source = []
+    for subj_id, samp_n in dupids_mapper.items():
+        df_dups_subset = ids_df[ids_df.subject_id==subj_id].copy()
 
-    # update the subj_id_mapper
-    subj_id_mapper.update(asap_id_mapper)
-    
-    return subj_id_mapper, df_nodups_wids, nstart
+        # check if gp2_id is known
+        # NOTE:  the gp2_id _might_ not be the GP2ID, but instead the GP2sampleID
+        #        we might want to check for a trailing _s\d+ and remove it
+        #        need to check w/ GP2 team about this.  The RepNo might be sample timepoint... 
+        #        and hence be a "subject" in our context
+        #    # df['GP2ID'] = df['GP2sampleID'].apply(lambda x: ("_").join(x.split("_")[:-1]))
+        #    # df['SampleRepNo'] = df['GP2sampleID'].apply(lambda x: x.split("_")[-1])#.replace("s",""))
+
+        gp2_id = None
+        add_gp2_id = False
+        # force skipping of null GP2_ids
+        if df_dups_subset['GP2_id'].nunique() > 1:
+            print(f"subj_id: {subj_id} has multiple gp2_ids: {df_dups_subset['GP2_id'].to_list()}... something is wrong")
+            #TODO: log this
+        elif not df_dups_subset['GP2_id'].dropna().empty: # we have a valide GP2_id
+            gp2_id = df_dups_subset['GP2_id'].values[0] # values because index was not reset
+
+        if gp2_id in set(gp2id_mapper.keys()):
+            asap_subj_id_gp2 = gp2id_mapper[gp2_id]
+        else:
+            add_gp2_id = True
+            asap_subj_id_gp2 = None
+
+        # check if source_id is known
+        source_id = None
+        add_source_id = False
+        if df_dups_subset['source_subject_id'].nunique() > 1:
+            print(f"subj_id: {subj_id} has multiple source ids: {df_dups_subset['source_subject_id'].to_list()}... something is wrong")
+            #TODO: log this
+        elif df_dups_subset['source_subject_id'].isnull().any():
+            print(f"subj_id: {subj_id} has no source_id... something is wrong")
+            #TODO: log this
+        else: # we have a valide source_id
+            #TODO: check for `source_subject_id` naming collisions with other teams
+            #      e.g. check the `biobank_name`
+            source_id = df_dups_subset['source_subject_id'].values[0]
+
+        if source_id in set(sourceid_mapper.keys()):
+            asap_subj_id_source = sourceid_mapper[source_id]
+        else:
+            add_source_id = True
+            asap_subj_id_source = None
+
+        # TODO: add AMPPD_id test/mapper 
+
+        # check if source_id is known
+        add_subj_id = False
+        # check if subj_id (subject_id) is known
+        if subj_id in set(asapid_mapper.keys()): # duplicate!!
+            # TODO: log this
+            # TODO: check for `subject_id` naming collisions with other teams
+            asap_subj_id = asapid_mapper[subj_id]
+        else:
+            add_subj_id = True
+            asap_subj_id = None
+
+        # TODO:  improve the logic here so gp2 is the default if it exists.?
+        #        we need to check the team_id to make sure it's not a naming collision on subject_id
+        #        we need to check the biobank_name to make sure it's not a naming collision on source_subject_id
+
+        testset = set((asap_subj_id, asap_subj_id_gp2, asap_subj_id_source))
+        if None in testset:
+            testset.remove(None)
+
+        # check that asap_subj_id is not disparate between the maps
+        if len(testset) > 1:
+            print(f"collission between our ids: {(asap_subj_id, asap_subj_id_gp2, asap_subj_id_source)=}")
+            print(f"this is BAAAAD. could be a naming collision with another team on `subject_id` ")
+
+        if len(testset) == 0:  # generate a new asap_subj_id
+            # print(samp_n)
+            asap_subject_id = f"{STUDY_PREFIX}{samp_n:06}"
+            # df_dups_subset.insert(0, 'ASAP_subject_id', asap_subject_id, inplace=True)
+        else: # testset should have the asap_subj_id
+            asap_subject_id = testset.pop() # but where did it come from?
+            # print(f"found {subj_id }:{asap_subject_id} in the maps")
+        
+        src = []
+        if add_subj_id:
+            asapid_mapper[subj_id] = asap_subject_id
+            n_asap_id_add += 1
+            src.append('asap')
+
+        if add_gp2_id and gp2_id is not None:
+            gp2id_mapper[gp2_id] = asap_subject_id
+            n_gp2_id_add += 1
+            src.append('gp2')
+
+        if add_source_id and source_id is not None:   
+            sourceid_mapper[source_id] = asap_subject_id
+            n_source_id_add += 1
+            src.append('source')
+
+        
+        df_dup_chunks.append(df_dups_subset)
+        id_source.append(src)
 
 
+    df_dups_wids = pd.concat(df_dup_chunks)
 
-def generate_asap_sample_ids(subj_id_mapper:dict, 
+    ASAP_subject_id = df_dups_wids['subject_id'].map(asapid_mapper)
+    df_dups_wids.insert(0, 'ASAP_subject_id', ASAP_subject_id)
+
+    print(f"added {n_asap_id_add} new asap_subject_ids")
+    print(f"added {n_gp2_id_add} new gp2_ids")
+    print(f"added {n_source_id_add} new source_ids")
+
+    # print(id_source)
+
+    return asapid_mapper, gp2id_mapper, sourceid_mapper, df_dups_wids, nstart
+
+
+def generate_asap_sample_ids(asapid_mapper:dict, 
                              sample_df:pd.DataFrame, 
-                             nstart:int, 
-                             samp_id_mapper:dict) -> tuple[dict, pd.DataFrame]:
+                             sampleid_mapper:dict) -> tuple[dict, pd.DataFrame]:
     """
     generate new unique_ids for new sample_ids in sample_df table, 
     update the id_mapper with the new ids from the data table
 
-
     return the updated id_mapper and updated sample_df
     """
-    # could pass subj_id_mapper as a parameter instead of n.  e.g.
-    # if bool(subj_id_mapper):
-    #     n = max([int(v.split("_")[2]) for v in subj_id_mapper.values() if v]) + 1
-    # else:
-    #     n = 1
-    
-    # since the current SAMPLE tables can have multipl sample_ids lets drop duplciates, with the caveat of replciates
-    df_nodups = sample_df.drop_duplicates(subset=['sample_id'])
-    
+
+    ud_sampleid_mapper = sampleid_mapper.copy()
     # 
-    uniq_subj = df_nodups.subject_id.unique()
+    uniq_subj = sample_df.subject_id.unique()
+    # check for subject_id collisions in the sampleid_mapper
+    if intersec := set(uniq_subj) & set(ud_sampleid_mapper.values()): 
+        print(f"found {len(intersec)} subject_id collisions in the sampleid_mapper")
+        
+    df_chunks = []
+    for subj_id in uniq_subj:
 
-    dupids_mapper = dict(zip(uniq_subj,
-                        [num+nstart for num in range(len(uniq_subj))] ))
+        df_subset = sample_df[sample_df.subject_id==subj_id].copy()
+        asap_id = asapid_mapper[subj_id]
 
-    df_dup_chunks = []
-    for subj_id, samp_n in dupids_mapper.items():
-        df_dups_subset = df_nodups[df_nodups.subject_id==subj_id].copy()
-        asap_id = subj_id_mapper[subj_id]
-        df_dups_subset['asap_sample'] = [f'{asap_id}_{samp_n:06}' for i in range(df_dups_subset.shape[0])]
-        df_dups_subset['samp_rep_no'] = ['s'+str(i+1) for i in range(df_dups_subset.shape[0])]
-        # make a new column with the asap_sample_id
-        # and insert it at the beginning of the dataframe
-        df_dups_subset['ASAP_sample_id'] = df_dups_subset['asap_sample'] + '_' + df_dups_subset['samp_rep_no']
+        dups = df_subset[df_subset.duplicated(keep=False, subset=['sample_id'])].sort_values('sample_id').reset_index(drop = True).copy()
+        nodups = df_subset[~df_subset.duplicated(keep=False, subset=['sample_id'])].sort_values('sample_id').reset_index(drop = True).copy()
+   
+        asap_id = asapid_mapper[subj_id]
+        if bool(ud_sampleid_mapper):
+            sns = [get_samp(v) for v in ud_sampleid_mapper.values() if get_id(v)==asap_id]
+            if len(sns) > 0: 
+                n = max(sns) + 1            
+            else: # get the hightest number
+                sns = [get_samp(v) for v in ud_sampleid_mapper.values() ]
+                n = max(sns) + 1            
+        else: # empty dicitonary. starting from scratch
+            n = 1
 
-        df_dup_chunks.append(df_dups_subset)
-    df_dups_wids = pd.concat(df_dup_chunks)
+        if nodups.shape[0]>0:
+            # ASSIGN IDS
+            asap_nodups = [f'{asap_id}_s{i+n:03}' for i in range(nodups.shape[0])]
+            # nodups['ASAP_sample_id'] = asap_nodups
+            nodups.loc[:, 'ASAP_sample_id'] = asap_nodups
+            n = n + nodups.shape[0]
+            samples_nodups = nodups['sample_id'].unique()
 
-    id_mapper = dict(zip(df_dups_wids.sample_id,
-                        df_dups_wids.ASAP_sample_id))
+            nodup_mapper = dict(zip(nodups['sample_id'],asap_nodups))
+            # df_subset['samp_rep_no'] = [f'r{i+1:02}' for i in range(df_subset.shape[0])]
+            # # make a new column with the asap_sample_id
+            # # and insert it at the beginning of the dataframe
+            # df_subset['ASAP_sample_id'] = df_subset['asap_sample'] + '_' + df_subset['samp_rep_no']
+
+            df_chunks.append(nodups)
+
+        if dups.shape[0]>0:
+            for dup_id in dups['sample_id'].unique():
+                # first peel of any sample_ids that were already named in nodups, 
+                if dup_id in samples_nodups:
+                    asap_dup = nodup_mapper[dup_id]                    
+                else:
+                    # then assign ids to the rest.
+                    asap_dup = f'{asap_id}_s{n:03}'
+                    dups.loc[dups.sample_id==dup_id, 'ASAP_sample_id'] = asap_dup
+                    n += 1
+            df_chunks.append(dups)
+
+
+    df_wids = pd.concat(df_chunks)
+    id_mapper = dict(zip(df_wids['sample_id'],
+                        df_wids['ASAP_sample_id']))
+
+    ud_sampleid_mapper.update(id_mapper)
+
+
     out_df = sample_df.copy()
-    ASAP_sample_id = out_df['sample_id'].map(id_mapper)
+    ASAP_sample_id = out_df['sample_id'].map(ud_sampleid_mapper)
     out_df.insert(0, 'ASAP_sample_id', ASAP_sample_id)
 
-    samp_id_mapper.update(id_mapper)
+    # print(ud_sampleid_mapper)
+    return ud_sampleid_mapper, out_df
 
-    return samp_id_mapper, out_df
+def read_CDE():
+    """Load CDE from local csv and cache it, return a dataframe and dictionary of dtypes"""
+    # Construct the path to CSD.csv
+    # google id for ASAP_CDE sheet
+    GOOGLE_SHEET_ID = "1xjxLftAyD0B8mPuOKUp5cKMKjkcsrp_zr9yuVULBLG8"
 
+    sheet_name = "ASAP_CDE_v2"
+    
+    cde_url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
 
+    try:
+        CDE_df = pd.read_csv(cde_url)
+    except Exception as e:
+        print("try local file")
+        try:
+            CDE_df = pd.read_csv(f"{sheet_name}.csv")
+        except FileNotFoundError:
+
+            # If the local file doesn't exist, return an error
+            print("Error: Both URL and local file are not available.")
+            CDE_df = None
+
+    dtypes_dict = get_dtypes_dict(CDE_df)
+    return CDE_df, dtypes_dict
 
 def process_meta_files(table_path, 
-                       CDE_path, 
-                       subject_mapper_path='subj_map.json', 
-                       sample_mapper_path='samp_map.json', 
-                       export_path = None):
+                        CDE_path, 
+                        subject_mapper_path = "ASAP_subj_map.json",
+                        sample_mapper_path = "ASAP_samp_map.json",
+                        gp2_mapper_path = "ASAP_gp2_map.json",
+                        source_mapper_path = "ASAP_source_map.json",
+                        export_path = None):
     """
     read in the meta data table, generate new ids, update the id_mapper, write the updated id_mapper to file
     """
 
     try:
-        subj_id_mapper = load_id_mapper(subject_mapper_path)
+        asapid_mapper = load_id_mapper(subject_mapper_path)
     except FileNotFoundError:
-        subj_id_mapper = {}
+        asapid_mapper = {}
         print(f"{subject_mapper_path} not found... starting from scratch")
 
     try:
-        samp_id_mapper = load_id_mapper(sample_mapper_path)
+        sampleid_mapper = load_id_mapper(sample_mapper_path)
     except FileNotFoundError:
-        samp_id_mapper = {}
+        sampleid_mapper = {}
         print(f"{sample_mapper_path} not found... starting from scratch")
 
-    if CDE_path.exists():
-        CDE = pd.read_csv(CDE_path )
-    else:
-        print(f"{CDE_path} not found... aborting")
+    try:
+        gp2id_mapper = load_id_mapper(gp2_mapper_path)
+    except FileNotFoundError:
+        gp2id_mapper = {}
+        print(f"{gp2_mapper_path} not found... starting from scratch")
+
+    try:
+        sourceid_mapper = load_id_mapper(source_mapper_path)
+    except FileNotFoundError:
+        sourceid_mapper = {}
+        print(f"{source_mapper_path} not found... starting from scratch")
+
+
+    # if CDE_path.exists():
+    #     CDE = pd.read_csv(CDE_path )
+    # else:
+    #     print(f"{CDE_path} not found... aborting")
+    #     return 0
+    # dtypes_dict = get_dtypes_dict(CDE)
+    
+    CDE, dtypes_dict = read_CDE()
+    if CDE is None:
         return 0
     
-    dtypes_dict = get_dtypes_dict(CDE)
-
     # add ASAP_team_id to the STUDY and PROTOCOL tables
     study_path = table_path / "STUDY.csv"
     if study_path.exists():
@@ -210,7 +404,7 @@ def process_meta_files(table_path,
     protocol_path = table_path / "PROTOCOL.csv"
     if protocol_path.exists():
         protocol_df = read_meta_table(protocol_path, dtypes_dict)
-        protocol_df['ASAP_team_id'] = team_id
+        protocol_df['ASAP_dataset_id'] = DATASET_ID
     else:
         protocol_df = None
         print(f"{protocol_path} not found... aborting")
@@ -220,9 +414,13 @@ def process_meta_files(table_path,
     subject_path = table_path / "SUBJECT.csv"
     if subject_path.exists():
         subject_df = read_meta_table(subject_path, dtypes_dict)
-        subj_id_mapper, subject_df, n = generate_asap_subject_ids(subj_id_mapper, subject_df)
-        # add ASAP_dataset_id = DATASET_ID to the SUBJECT tables
-        subject_df['ASAP_dataset_id'] = DATASET_ID
+        output = generate_asap_subject_ids(asapid_mapper,
+                                            gp2id_mapper,
+                                            sourceid_mapper, 
+                                            subject_df)
+        asapid_mapper, gp2id_mapper,sourceid_mapper, subject_df, n = output
+        # # add ASAP_dataset_id = DATASET_ID to the SUBJECT tables
+        # subject_df['ASAP_dataset_id'] = DATASET_ID
     else:
         subject_df = None
         print(f"{subject_path} not found... aborting")
@@ -232,7 +430,7 @@ def process_meta_files(table_path,
     sample_path = table_path / "SAMPLE.csv"
     if sample_path.exists():
         sample_df = read_meta_table(sample_path, dtypes_dict)
-        samp_id_mapper, sample_df = generate_asap_sample_ids(subj_id_mapper, sample_df, n, samp_id_mapper)
+        sampleid_mapper, sample_df = generate_asap_sample_ids(asapid_mapper, sample_df, sampleid_mapper)
         sample_df['ASAP_dataset_id'] = DATASET_ID
     else:
         sample_df = None
@@ -243,7 +441,13 @@ def process_meta_files(table_path,
     clinpath_path = table_path / "CLINPATH.csv"
     if clinpath_path.exists():
         clinpath_df = read_meta_table(clinpath_path, dtypes_dict)
-        clinpath_df['ASAP_sample_id'] = clinpath_df['sample_id'].map(samp_id_mapper)
+        clinpath_df['ASAP_subject_id'] = clinpath_df['subject_id'].map(asapid_mapper)
+
+    # add ASAP_sample_id to the DATA tables
+    data_path = table_path / "DATA.csv"
+    if data_path.exists():
+        data_df = read_meta_table(data_path, dtypes_dict)
+
 
     # once we update the CDE so CLINPATH has subject level data we can add this
     # # add ASAP_subject_id to the CLINPATH tables
@@ -255,7 +459,7 @@ def process_meta_files(table_path,
 
     # export updated tables
     if export_path is not None:
-        asap_tables_path = Path.cwd() / "ASAP_tables" / table_path.name.split("-")[1]
+        asap_tables_path = export_path / study_df.ASAP_team_id[0]
         print(f"exporting to {asap_tables_path}")
         if  not asap_tables_path.exists():
             asap_tables_path.mkdir()
@@ -270,13 +474,17 @@ def process_meta_files(table_path,
             sample_df.to_csv(asap_tables_path / sample_path.name)
         if clinpath_path.exists():
             clinpath_df.to_csv(asap_tables_path / clinpath_path.name)
+        if data_path.exists():
+            data_df.to_csv(asap_tables_path / clinpath_path.name)
     else:
         print("no ASAP_tables with ASAP_ID's exported")
 
     # write the updated id_mapper to file
-    write_id_mapper(subj_id_mapper, subject_mapper_path)
-    write_id_mapper(samp_id_mapper, sample_mapper_path)
-
+    print(f"overwriting updated id_mapper to {subject_mapper_path},{sample_mapper_path}, etc.")
+    write_id_mapper(asapid_mapper, subject_mapper_path)
+    write_id_mapper(sourceid_mapper, source_mapper_path)
+    write_id_mapper(gp2id_mapper, gp2_mapper_path)
+    write_id_mapper(sampleid_mapper, sample_mapper_path)
 
     return 1
 
@@ -285,38 +493,90 @@ def process_meta_files(table_path,
 #########  script to generate the asap_ids.json file #####################
 if __name__ == "__main__":
 
-    ## get thd CDE to properly read in the meta data tables
-    CDE_path = Path.cwd() / "ASAP_CDE.csv" 
-    CDE = pd.read_csv(CDE_path )
-    # Initialize the data types dictionary
-    dtypes_dict = get_dtypes_dict(CDE)
+    # Set up the argument parser
+    parser = argparse.ArgumentParser(description="A command-line tool to update tables from ASAP_CDEv1 to ASAP_CDEv2.")
+    
+    # Add arguments
+    parser.add_argument("--tables", default=Path.cwd(),
+                        help="Path to the directory containing meta TABLES. Defaults to the current working directory.")
+    parser.add_argument("--cde", default=Path.cwd(),
+                        help="Path to the directory containing CSD.csv. Defaults to the current working directory.")
+    parser.add_argument("--map", default=Path.cwd(),
+                        help="Path to the directory containing path to mapper.json files. Defaults to the current working directory.")
+    parser.add_argument("--suf", default="test",
+                        help="suffix to mapper.json. Defaults to 'map' i.e. ASAP_{samp,subj}_map.json")
+    parser.add_argument("--outdir", default="v2",
+                        help="Path to the directory containing CSD.csv. Defaults to the current working directory.")
+    
+    # Parse the arguments
+    args = parser.parse_args()
 
-    ## add team Lee
-    table_root = Path.cwd() / "clean/team-Lee"
-    subject_mapper_path = Path.cwd() / "ASAP_subj_map.json"
-    sample_mapper_path = Path.cwd() / "ASAP_samp_map.json"
-    export_root = Path.cwd() / "ASAP_tables" 
+    ## get thd CDE to properly read in the meta data tables
+    # CDE_path = Path.cwd() / "ASAP_CDE_v2.csv" 
+    # CDE = pd.read_csv(CDE_path )
+    # # Initialize the data types dictionary
+    # dtypes_dict = get_dtypes_dict(CDE)
+    CDE_path = Path(args.cde) / "ASAP_CDE_v2.csv"
+   
+    subject_mapper_path = Path(args.map) / f"ASAP_subj_{args.suf}.json"
+    sample_mapper_path = Path(args.map) / f"ASAP_samp_{args.suf}.json"
+    gp2_mapper_path = Path(args.map) / f"ASAP_gp2_{args.suf}.json"
+    source_mapper_path = Path(args.map) / f"ASAP_source_{args.suf}.json"
+
+
+    team_path = "clean/team-Hardy/v2_20231109"
+    data_path = Path.cwd() / team_path
+     ## add team Lee
+    table_root = Path(args.tables) / team_path
+    export_root = Path.cwd() / "ASAP_tables"
     
     process_meta_files(table_root, 
-                       CDE_path, 
-                       subject_mapper_path, 
-                       sample_mapper_path, 
-                       export_path=export_root)
-
-    ## add team Hafler
-    table_root = Path.cwd() / "clean/team-Hafler"
+                        CDE_path, 
+                        subject_mapper_path=subject_mapper_path, 
+                        sample_mapper_path=sample_mapper_path, 
+                        gp2_mapper_path=gp2_mapper_path,
+                        source_mapper_path = source_mapper_path,
+                        export_path = export_root)
+    
+    team_path = "clean/team-Hafler/v2_20231109"
+    data_path = Path.cwd() / team_path
+     ## add team Lee
+    table_root = Path(args.tables) / team_path
+    export_root = Path.cwd() / "ASAP_tables"
+    
     process_meta_files(table_root, 
-                       CDE_path, 
-                       subject_mapper_path, 
-                       sample_mapper_path, 
-                       export_path=export_root)
-
-    ## add team Hardy
-    table_root = Path.cwd() / "clean/team-Hardy"
+                        CDE_path, 
+                        subject_mapper_path=subject_mapper_path, 
+                        sample_mapper_path=sample_mapper_path, 
+                        gp2_mapper_path=gp2_mapper_path,
+                        source_mapper_path = source_mapper_path,
+                        export_path = export_root)
+    
+    team_path = "clean/team-Lee/v2_20231109"
+    data_path = Path.cwd() / team_path
+     ## add team Lee
+    table_root = Path(args.tables) / team_path
+    export_root = Path.cwd() / "ASAP_tables"
+    
     process_meta_files(table_root, 
-                       CDE_path, 
-                       subject_mapper_path, 
-                       sample_mapper_path, 
-                       export_path=export_root)
-
-
+                        CDE_path, 
+                        subject_mapper_path=subject_mapper_path, 
+                        sample_mapper_path=sample_mapper_path, 
+                        gp2_mapper_path=gp2_mapper_path,
+                        source_mapper_path = source_mapper_path,
+                        export_path = export_root)
+    
+    # team_path = "clean/team-Test/v2_20231111"
+    # data_path = Path.cwd() / team_path
+    #  ## add team Lee
+    # table_root = Path(args.tables) / team_path
+    # export_root = Path.cwd() / "ASAP_tables"
+    
+    # process_meta_files(table_root, 
+    #                     CDE_path, 
+    #                     subject_mapper_path=subject_mapper_path, 
+    #                     sample_mapper_path=sample_mapper_path, 
+    #                     gp2_mapper_path=gp2_mapper_path,
+    #                     source_mapper_path = source_mapper_path,
+    #                     export_path = export_root)
+    
