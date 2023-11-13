@@ -511,6 +511,8 @@ if __name__ == "__main__":
     # Parse the arguments
     args = parser.parse_args()
 
+    ## HACK: testing code below overriding the CLI
+    
     ## get thd CDE to properly read in the meta data tables
     # CDE_path = Path.cwd() / "ASAP_CDE_v2.csv" 
     # CDE = pd.read_csv(CDE_path )
