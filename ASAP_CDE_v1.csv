@@ -8,7 +8,7 @@ STUDY,PI_full_name,"Principal Investigator Name.:   Full name of the lab Princip
 STUDY,PI_email,Principal Investigator E-mail.:   E-mail address of the Principle Investigator of the Lab submitting the data.,String,Required,
 STUDY,contributor_names,"Contributor(s).:   Names of all contributors to the dataset. Format:  First name, Initial, Last name ; First name, Initial, Last name ; ...",String,Required,
 STUDY,submitter_name,Data Submitter Name.:   Full name of individual submitting data.,String,Required,
-STUDY,submittor_email,Data Submitter E-Mail.:   Email address of individual submitting data.,String,Required,
+STUDY,submitter_email,Data Submitter E-Mail.:   Email address of individual submitting data.,String,Required,
 STUDY,ASAP_grant_id,ASAP Grant ID.:   ID of the ASAP grant funding the study.  e.g. ASAP-000xxx,String,Required,
 STUDY,other_funding_source,Other Funding.:   Details of other funding contributing to data generation.,String,Required,
 STUDY,publication_DOI,bioRxiv DOI.:   Digital Object Identifer for pre-print(s). NA if not available.,String,Required,

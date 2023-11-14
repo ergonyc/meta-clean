@@ -291,10 +291,13 @@ def generate_asap_sample_ids(asapid_mapper:dict,
             # df_subset['ASAP_sample_id'] = df_subset['asap_sample'] + '_' + df_subset['samp_rep_no']
 
             df_chunks.append(nodups)
+        else:
+            samples_nodups = []
 
         if dups.shape[0]>0:
             for dup_id in dups['sample_id'].unique():
                 # first peel of any sample_ids that were already named in nodups, 
+
                 if dup_id in samples_nodups:
                     asap_dup = nodup_mapper[dup_id]                    
                 else:

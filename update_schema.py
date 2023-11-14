@@ -26,6 +26,14 @@ def update_tables_to_CDEv2(tables_path: str|Path, CDEv1: pd.DataFrame, CDEv2: pd
     CLINPATH = read_meta_table(f"{tables_path}/CLINPATH.csv", dtypes_dict)
     SAMPLE = read_meta_table(f"{tables_path}/SAMPLE.csv", dtypes_dict)
 
+    # this enforces that the tables have the right columns.. including"optional"
+    STUDY = reorder_table_to_CDE(STUDY, "STUDY", CDEv1)
+    PROTOCOL = reorder_table_to_CDE(PROTOCOL, "PROTOCOL", CDEv1)
+    CLINPATH = reorder_table_to_CDE(CLINPATH, "CLINPATH", CDEv1)
+    SAMPLE = reorder_table_to_CDE(SAMPLE, "SAMPLE", CDEv1)
+    SUBJECT = reorder_table_to_CDE(SUBJECT, "SUBJECT", CDEv1)
+    
+
     # STUDY
     STUDYv2 = STUDY.copy() # don't really need to copy here
     assert len(SAMPLE['preprocessing_references'].unique()) == 1
@@ -37,11 +45,16 @@ def update_tables_to_CDEv2(tables_path: str|Path, CDEv1: pd.DataFrame, CDEv2: pd
     PROTOCOLv2 = PROTOCOL.copy()  
 
     SAMP_CLIN = SAMPLE.merge(CLINPATH, on="sample_id", how="left")
-    SAMP_CLIN['source_sample_id'] = SAMP_CLIN['source_sample_id_x']
-    SAMP_CLIN = SAMP_CLIN.drop(columns=['source_sample_id_x','source_sample_id_y'])
+    # if we merged source_sample_ids, we would have to rename the columns   
+    if 'source_sample_id' not in SAMP_CLIN.columns:
+        SAMP_CLIN['source_sample_id'] = SAMP_CLIN['source_sample_id_x']
+        SAMP_CLIN = SAMP_CLIN.drop(columns=['source_sample_id_x','source_sample_id_y'])
 
     SUBJ_SAMP_CLIN = SUBJECT.merge(SAMP_CLIN, on="subject_id", how="left")
-
+    # if we merged source_sample_ids, we would have to rename the columns   
+    if 'source_subject_id' not in SUBJ_SAMP_CLIN.columns:
+        SUBJ_SAMP_CLIN['source_subject_id'] = SUBJ_SAMP_CLIN['source_subject_id_x']
+        SUBJ_SAMP_CLIN = SUBJ_SAMP_CLIN.drop(columns=['source_subject_id_x','source_subject_id_y'])
 
     SUBJECT_cde_df = CDEv2[CDEv2['Table'] == "SUBJECT"]
     SUBJECT_cols = SUBJECT_cde_df["Field"].to_list()
