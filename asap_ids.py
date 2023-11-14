@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import argparse
 
+
+# copy these helper here from utils/io.py
 # Function to read a table with the specified data types
 def read_meta_table(table_path,dtypes_dict):
     table_df = pd.read_csv(table_path,dtype=dtypes_dict, index_col=0)
@@ -33,12 +35,13 @@ def get_dtypes_dict(cde_df):
     return dtypes_dict
 
 
-STUDY_PREFIX = "ASAP_PMBDS_"
 DATASET_ID = "ASAP_PMBDS"
+STUDY_PREFIX = f"{DATASET_ID}_"
 
 
 def load_id_mapper(id_mapper_path:Path) -> dict:
     """ load the id mapper from the json file"""
+    id_mapper_path = Path(id_mapper_path)
     if Path.exists(id_mapper_path):
         with open(id_mapper_path, 'r') as f:
             id_mapper = json.load(f)
@@ -341,6 +344,8 @@ def read_CDE():
     dtypes_dict = get_dtypes_dict(CDE_df)
     return CDE_df, dtypes_dict
 
+
+
 def process_meta_files(table_path, 
                         CDE_path, 
                         subject_mapper_path = "ASAP_subj_map.json",
@@ -512,7 +517,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     ## HACK: testing code below overriding the CLI
-    
+
     ## get thd CDE to properly read in the meta data tables
     # CDE_path = Path.cwd() / "ASAP_CDE_v2.csv" 
     # CDE = pd.read_csv(CDE_path )
@@ -525,12 +530,9 @@ if __name__ == "__main__":
     gp2_mapper_path = Path(args.map) / f"ASAP_gp2_{args.suf}.json"
     source_mapper_path = Path(args.map) / f"ASAP_source_{args.suf}.json"
 
+    table_root = Path(args.tables) 
+    export_root= Path(args.outdir)
 
-    team_path = "clean/team-Hardy/v2_20231109"
-    data_path = Path.cwd() / team_path
-     ## add team Lee
-    table_root = Path(args.tables) / team_path
-    export_root = Path.cwd() / "ASAP_tables"
     
     process_meta_files(table_root, 
                         CDE_path, 
@@ -540,33 +542,48 @@ if __name__ == "__main__":
                         source_mapper_path = source_mapper_path,
                         export_path = export_root)
     
-    team_path = "clean/team-Hafler/v2_20231109"
-    data_path = Path.cwd() / team_path
-     ## add team Lee
-    table_root = Path(args.tables) / team_path
-    export_root = Path.cwd() / "ASAP_tables"
+
+    # team_path = "clean/team-Hardy/v2_20231109"
+    # data_path = Path.cwd() / team_path
+    #  ## add team Lee
+    # table_root = Path(args.tables) / team_path
+    # export_root = Path.cwd() / "ASAP_tables"
     
-    process_meta_files(table_root, 
-                        CDE_path, 
-                        subject_mapper_path=subject_mapper_path, 
-                        sample_mapper_path=sample_mapper_path, 
-                        gp2_mapper_path=gp2_mapper_path,
-                        source_mapper_path = source_mapper_path,
-                        export_path = export_root)
+    # process_meta_files(table_root, 
+    #                     CDE_path, 
+    #                     subject_mapper_path=subject_mapper_path, 
+    #                     sample_mapper_path=sample_mapper_path, 
+    #                     gp2_mapper_path=gp2_mapper_path,
+    #                     source_mapper_path = source_mapper_path,
+    #                     export_path = export_root)
     
-    team_path = "clean/team-Lee/v2_20231109"
-    data_path = Path.cwd() / team_path
-     ## add team Lee
-    table_root = Path(args.tables) / team_path
-    export_root = Path.cwd() / "ASAP_tables"
+    # team_path = "clean/team-Hafler/v2_20231109"
+    # data_path = Path.cwd() / team_path
+    #  ## add team Lee
+    # table_root = Path(args.tables) / team_path
+    # export_root = Path.cwd() / "ASAP_tables"
     
-    process_meta_files(table_root, 
-                        CDE_path, 
-                        subject_mapper_path=subject_mapper_path, 
-                        sample_mapper_path=sample_mapper_path, 
-                        gp2_mapper_path=gp2_mapper_path,
-                        source_mapper_path = source_mapper_path,
-                        export_path = export_root)
+    # process_meta_files(table_root, 
+    #                     CDE_path, 
+    #                     subject_mapper_path=subject_mapper_path, 
+    #                     sample_mapper_path=sample_mapper_path, 
+    #                     gp2_mapper_path=gp2_mapper_path,
+    #                     source_mapper_path = source_mapper_path,
+    #                     export_path = export_root)
+    
+    # team_path = "clean/team-Lee/v2_20231109"
+    # data_path = Path.cwd() / team_path
+    #  ## add team Lee
+    # table_root = Path(args.tables) / team_path
+    # export_root = Path.cwd() / "ASAP_tables"
+    
+    # process_meta_files(table_root, 
+    #                     CDE_path, 
+    #                     subject_mapper_path=subject_mapper_path, 
+    #                     sample_mapper_path=sample_mapper_path, 
+    #                     gp2_mapper_path=gp2_mapper_path,
+    #                     source_mapper_path = source_mapper_path,
+    #                     export_path = export_root)
     
     # team_path = "clean/team-Test/v2_20231111"
     # data_path = Path.cwd() / team_path
