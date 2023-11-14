@@ -1,17 +1,17 @@
 import pandas as pd
 from pathlib import Path
 import argparse
+import datetime
 
 # local helpers
 from utils.io import get_dtypes_dict, read_meta_table
 from utils.qcutils import reorder_table_to_CDE
 
 
-def update_tables_to_CDEv2(tables_path: str|Path, out_dir: str, CDEv1: pd.DataFrame, CDEv2: pd.DataFrame):
+def update_tables_to_CDEv2(tables_path: str|Path, CDEv1: pd.DataFrame, CDEv2: pd.DataFrame, out_dir: str|None = None ):
     """
     load the tables from the tables_path, and update them to the CDEv2 schema.  export the new tables to a datstamped out_dir
     """
-    import datetime
 
     # Get the current date and time
     current_date = datetime.datetime.now()
@@ -30,6 +30,8 @@ def update_tables_to_CDEv2(tables_path: str|Path, out_dir: str, CDEv1: pd.DataFr
     STUDYv2 = STUDY.copy() # don't really need to copy here
     assert len(SAMPLE['preprocessing_references'].unique()) == 1
     STUDYv2['preprocessing_references'] = SAMPLE['preprocessing_references'][0]
+    if 'team_dataset_id' not in STUDYv2.columns:
+        STUDYv2['team_dataset_id'] = STUDYv2['project_dataset'].str.replace(" ", "_").str.replace("-", "_")
 
     # PROTOCOL
     PROTOCOLv2 = PROTOCOL.copy()  
@@ -73,17 +75,19 @@ def update_tables_to_CDEv2(tables_path: str|Path, out_dir: str, CDEv1: pd.DataFr
 
     tables_path = Path(tables_path)
 
-    export_root = tables_path / f"{out_dir}_{date_str}"
-    if not export_root.exists():
-        export_root.mkdir(parents=True, exist_ok=True)
+    # write files to disk
+    if out_dir is not None: 
+        export_root = tables_path / f"{out_dir}_{date_str}"
+        if not export_root.exists():
+            export_root.mkdir(parents=True, exist_ok=True)
 
 
-    STUDYv2.to_csv( export_root / "STUDY.csv")
-    PROTOCOLv2.to_csv(export_root / "PROTOCOL.csv")
-    SAMPLEv2.to_csv(export_root / "SAMPLE.csv")
-    SUBJECTv2.to_csv(export_root / "SUBJECT.csv")
-    CLINPATHv2.to_csv(export_root / "CLINPATH.csv")
-    DATAv2.to_csv(export_root / "DATA.csv")
+        STUDYv2.to_csv( export_root / "STUDY.csv")
+        PROTOCOLv2.to_csv(export_root / "PROTOCOL.csv")
+        SAMPLEv2.to_csv(export_root / "SAMPLE.csv")
+        SUBJECTv2.to_csv(export_root / "SUBJECT.csv")
+        CLINPATHv2.to_csv(export_root / "CLINPATH.csv")
+        DATAv2.to_csv(export_root / "DATA.csv")
 
     return (STUDYv2, PROTOCOLv2, SAMPLEv2, SUBJECTv2, CLINPATHv2, DATAv2)
 
@@ -104,6 +108,7 @@ def read_CDEs(tab_path: str|Path):
         CDEv1 = pd.read_csv(cde_url)
     except:
         CDEv1 = pd.read_csv(tab_path / f"{sheet_name}.csv")
+        print("read local file v1")
 
     sheet_name = "ASAP_CDE_v2"
     try:
@@ -111,6 +116,7 @@ def read_CDEs(tab_path: str|Path):
         CDEv2 = pd.read_csv(cde_url)
     except:
         CDEv2 = pd.read_csv(tab_path / f"{sheet_name}.csv")
+        print("read local file v2")
 
     return CDEv1, CDEv2
 
@@ -135,7 +141,7 @@ def main():
 
     CDEv1,CDEv2 = read_CDEs(args.cde)
 
-    _ = update_tables_to_CDEv2(args.tables, args.outdir, CDEv1, CDEv2)
+    _ = update_tables_to_CDEv2(args.tables, CDEv1, CDEv2, args.outdir)
 
 
 

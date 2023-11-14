@@ -128,8 +128,6 @@ def validate_file(table_name, path, report):
         return 0
 
 
-
-
     ref_file_path = os.path.join(path, f"{table_name}.csv")
     report.add_header(f"{table_name} table ({table_name}.csv)")
 

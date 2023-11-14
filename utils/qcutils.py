@@ -1,9 +1,11 @@
 # imports
 import pandas as pd
-import numpy as np
 
-from .io import ReportCollector, columnize
+from .io import ReportCollector, columnize, read_meta_table, get_dtypes_dict
+from pathlib import Path
 
+# google id for ASAP_CDE sheet
+GOOGLE_SHEET_ID = "1xjxLftAyD0B8mPuOKUp5cKMKjkcsrp_zr9yuVULBLG8"
 
 def validate_table(table_in: pd.DataFrame, table_name: str, CDE: pd.DataFrame, out: ReportCollector):
     """
@@ -15,17 +17,20 @@ def validate_table(table_in: pd.DataFrame, table_name: str, CDE: pd.DataFrame, o
 
     # Filter out rows specific to the given table_name from the CDE
     specific_cde_df = CDE[CDE['Table'] == table_name]
-    
-    # Extract fields that have a data type of "Enum" and retrieve their validation entries
-    enum_fields_dict = dict(zip(specific_cde_df[specific_cde_df['DataType'] == "Enum"]['Field'], 
-                               specific_cde_df[specific_cde_df['DataType'] == "Enum"]['Validation']))
-    
+    table = prep_table(table_in, specific_cde_df)
+
+    #### REQUIRED VS OPTIONAL
     # Extract fields that are marked as "Required"
     required_fields = specific_cde_df[specific_cde_df['Required'] == "Required"]['Field'].tolist()
     optional_fields = specific_cde_df[specific_cde_df['Required'] == "Optional"]['Field'].tolist()
 
+    # Extract fields that have a data type of "Enum" and retrieve their validation entries
+    enum_fields_dict = dict(zip(specific_cde_df[specific_cde_df['DataType'] == "Enum"]['Field'], 
+                               specific_cde_df[specific_cde_df['DataType'] == "Enum"]['Validation']))
+    
+    # This is redundant... should already be converted... but DOES capitalize first letter.   
     # table returns a copy of the table with the specified columns converted to string data type
-    table = force_enum_string(table_in, table_name, CDE)
+    # table = force_enum_string(table_in, table_name, CDE)
 
     # Check for missing "Required" fields
     missing_required_fields = [field for field in required_fields if field not in table.columns]
@@ -53,7 +58,8 @@ def validate_table(table_in: pd.DataFrame, table_name: str, CDE: pd.DataFrame, o
             retval = 0
         else:
             out.add_markdown(f"No empty entries (Nan) found in _{test_name}_ fields.")
-    
+
+
     # Check for invalid Enum field values
     invalid_field_values = {}
     valid_field_values = {}
@@ -74,7 +80,6 @@ def validate_table(table_in: pd.DataFrame, table_name: str, CDE: pd.DataFrame, o
                     invalid_fields.append(field)    
                     invalid_field_values[field] = invalids
                     valid_field_values[field] = valid_values
-                
 
 
     if invalid_field_values:
@@ -82,14 +87,19 @@ def validate_table(table_in: pd.DataFrame, table_name: str, CDE: pd.DataFrame, o
         out.add_error("Invalid entries")
         # tmp = {key:value for key,value in invalid_field_values.items() if key not in invalid_nan_fields}
         # st.write(tmp)
-
+        def my_str(x):
+            return f"'{str(x)}'"
+            
         for field, values in invalid_field_values.items():
             if field in invalid_fields:
-                out.add_markdown( f"\t- {field}:{', '.join(map(str, values))}" )
-                out.add_markdown( f"\t>\t change to: {', '.join(map(str, valid_field_values[field]))}" )
+                str_out = f"- _*{field}*_:  invalid values 💩{', '.join(map(my_str, values))}\n"
+                str_out += f"    - valid ➡️ {', '.join(map(my_str, valid_field_values[field]))}"
+                out.add_markdown(str_out)
+                # out.add_markdown( f"- {field}: invalid values {', '.join(map(str, values))}" )
+                # out.add_markdown( f"- change to: {', '.join(map(my_str, valid_field_values[field]))}" )
 
         if len(invalid_nan_fields) > 0:
-            out.add_error("Found unexpected NULL (nan):")
+            out.add_error("Found unexpected NULL (<NA> or NaN):")
             out.add_markdown(columnize(invalid_nan_fields))
         
         retval = 0
@@ -99,6 +109,8 @@ def validate_table(table_in: pd.DataFrame, table_name: str, CDE: pd.DataFrame, o
 
     return retval
 
+
+
 ######## HELPERS ########
 # Define a function to only capitalize the first letter of a string
 def capitalize_first_letter(s):
@@ -106,23 +118,20 @@ def capitalize_first_letter(s):
         return s
     return s[0].upper() + s[1:]
 
-def force_enum_string(df_in:pd.DataFrame, df_name:str, CDE:pd.DataFrame) -> pd.DataFrame:
-    """helper to force Enum columns to string data type, and force capitalization of first letters"""
+def prep_table(df_in:pd.DataFrame, CDE:pd.DataFrame) -> pd.DataFrame:
+    """helper to force capitalization of first letters for string and Enum fields"""
     df = df_in.copy()
-    string_enum_fields = CDE[(CDE["Table"] == df_name) & 
-                                (CDE["DataType"].isin(["Enum", "String"]))]["Field"].tolist()
+    string_enum_fields = CDE[CDE["DataType"].isin(["Enum", "String"])]["Field"].tolist()
     # Convert the specified columns to string data type using astype() without a loop
     columns_to_convert = {col: 'str' for col in string_enum_fields if col in df.columns}
     df = df.astype(columns_to_convert)
-    
     for col in string_enum_fields:
         if col in df.columns and col not in ["assay", "file_type"]:
-            df[col] = df[col].apply(capitalize_first_letter)
-
+            df[col] = df[col].apply(capitalize_first_letter) 
     return df
 
 def reorder_table_to_CDE(df: pd.DataFrame, df_name:str, CDE: pd.DataFrame) -> pd.DataFrame:
-    """ convert table to CDE field order and create NULL (pd.NA) entries columns for missing fields"""
+    """ convert table to CDE field order and create empty columns for missing fields"""
     col_order = CDE[CDE["Table"]==df_name].Field.tolist()
     
     df_out = pd.DataFrame()
@@ -131,8 +140,48 @@ def reorder_table_to_CDE(df: pd.DataFrame, df_name:str, CDE: pd.DataFrame) -> pd
         if col in df.columns:   
             df_out[col] = df[col]
         else:
-            df_out[col] = pd.NA # np.nan doesn't work because it converts the whole column to float
-            print(f"WARNING: {col} not found in {df_name} table.  Adding NULL column.")
+            df_out[col] = pd.NA
+            print(f"added empty column {col} to {df_name} table")
+
     return df_out
 
+def validate_file(table_name, path, report, CDE_df):
+    # Construct the path to CSD.csv
+    try:
+        ref_file_path = Path(path) / f"{table_name}.csv"
+        reference_df = read_meta_table(ref_file_path,get_dtypes_dict(CDE_df)) 
 
+    except:
+        report.add_error(f"Could not find {table_name}.csv")
+        return 0
+
+    report.add_header(f"{table_name} table ({table_name}.csv)")
+
+    retval = validate_table(reference_df, table_name, CDE_df, report)
+
+    return retval
+
+
+def read_ASAP_CDE(metadata_version:str="v2"):
+    """
+    Load CDE from local csv and cache it, return a dataframe and dictionary of dtypes
+    """
+    # Construct the path to CSD.csv
+
+    if metadata_version == "v1":
+        sheet_name = "ASAP_CDE_v1"
+    else:
+        sheet_name = "ASAP_CDE_v2"
+    
+    cde_url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+
+    try:
+        CDE_df = pd.read_csv(cde_url)
+        print("read url")
+    except:
+        CDE_df = pd.read_csv(f"{sheet_name}.csv")
+        print("read local file")
+
+
+    dtypes_dict = get_dtypes_dict(CDE_df)
+    return CDE_df, dtypes_dict

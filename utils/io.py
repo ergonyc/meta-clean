@@ -21,7 +21,7 @@ except ImportError:
         def divider(self):
             pass
     st = DummyStreamlit()
-    print("Streamlit NOT successfully. using dummy `st` class")
+    print("Streamlit NOT successfully")
 
 
 class ReportCollector:
@@ -89,10 +89,9 @@ class ReportCollector:
     def reset(self):
         self.entries = []
         self.filename = None
-        
+
     def print_log(self):
         print(self.get_log())
-
 
 def get_log(log_file):
     """ grab logged information from the log file."""
@@ -107,15 +106,20 @@ def columnize( itemlist ):
     else:
         return f"- {itemlist[0]}"
     
-
 # Function to read a table with the specified data types
 def read_meta_table(table_path,dtypes_dict):
     # read the whole table
-    table_df = pd.read_csv(table_path,dtype=dtypes_dict)
+    try:
+        table_df = pd.read_csv(table_path,dtype=dtypes_dict)
+    except UnicodeDecodeError:
+        table_df = pd.read_csv(table_path, encoding='latin1',dtype=dtypes_dict)
+
     # drop the first column if it is just the index
     if table_df.columns[0] == "Unnamed: 0":
         table_df = table_df.drop(columns=["Unnamed: 0"])
     return table_df
+
+
 
 # Function to get data types dictionary for a given table
 def get_dtypes_dict(cde_df):
@@ -140,33 +144,35 @@ def get_dtypes_dict(cde_df):
         #     dtypes_dict[field_name] = 'Int64'  # nullable integer
         # elif data_type == "Float":
         #     dtypes_dict[field_name] = 'Float64'  # nullable float
-
-        # # Set the data type to string for "String" and "Enum" fields
-        # if data_type == "String":
-        #     dtypes_dict[field_name] = str
-        # elif data_type == "Enum":
-        #     dtypes_dict[field_name] = 'category'
-        # elif data_type == "Integer":
-        #     dtypes_dict[field_name] = int
-        # elif data_type == "Float":
-        #     dtypes_dict[field_name] = float
     
     return dtypes_dict
 
+
+# Function to get data types dictionary for a given table
+def get_dtypes_dict_all(cde_df):
+    # Initialize the data types dictionary
+    dtypes_dict = {}
+    
+    # Iterate over the rows to fill the dictionary
+    for _, row in cde_df.iterrows():
+        field_name = row["Field"]
+        data_type = row["DataType"]
+        
+        # Set the data type to string for "String" and "Enum" fields
+        if data_type in ["String"]:
+            dtypes_dict[field_name] = 'string'
+        elif data_type == "Enum":
+            dtypes_dict[field_name] = 'category'
+        elif data_type == "Integer":
+            dtypes_dict[field_name] = 'Int64'  # nullable integer
+        elif data_type == "Float":
+            dtypes_dict[field_name] = 'Float64'  # nullable float
+    
+    return dtypes_dict
 
 # streamlit specific helpers which don't depend on streamlit
 
 def load_css(file_name):
    with open(file_name) as f:
       st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
-
-# Define some custom functions
-def read_file(data_file,dtypes_dict):
-    if data_file.type == "text/csv":
-        df = pd.read_csv(data_file, dtype=dtypes_dict)        
-        # df = read_meta_table(table_path,dtypes_dict)
-    # assume that the xlsx file remembers the dtypes
-    elif data_file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-        df = pd.read_excel(data_file, sheet_name=0)
-    return (df)
 
