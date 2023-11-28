@@ -63,7 +63,7 @@ def update_tables_to_CDEv2(tables_path: str|Path, CDEv1: pd.DataFrame, CDEv2: pd
 
     CLINPATH_cde_df = CDEv2[CDEv2['Table'] == "CLINPATH"]
     CLINPATH_cols = CLINPATH_cde_df["Field"].to_list()
-    CLINPATHv2 = SUBJ_SAMP_CLIN[CLINPATH_cols]
+    CLINPATHv2 = SUBJ_SAMP_CLIN[CLINPATH_cols].drop_duplicates(inplace=False).reset_index()
 
     SAMPLE_cde_df = CDEv2[CDEv2['Table'] == "SAMPLE"]
     SAMPLE_cols = SAMPLE_cde_df["Field"].to_list()
