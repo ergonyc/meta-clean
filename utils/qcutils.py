@@ -126,7 +126,7 @@ def prep_table(df_in:pd.DataFrame, CDE:pd.DataFrame) -> pd.DataFrame:
     columns_to_convert = {col: 'str' for col in string_enum_fields if col in df.columns}
     df = df.astype(columns_to_convert)
     for col in string_enum_fields:
-        if col in df.columns and col not in ["assay", "file_type"]:
+        if col in df.columns and col not in ["assay", "file_type", "file_name", "file_MD5"]:
             df[col] = df[col].apply(capitalize_first_letter) 
     return df
 

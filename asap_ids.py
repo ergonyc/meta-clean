@@ -5,6 +5,13 @@ from pathlib import Path
 import argparse
 
 
+DATASET_ID = "ASAP_PMBDS"
+STUDY_PREFIX = f"{DATASET_ID}_"
+
+
+
+ASAP_CDE = "ASAP_CDE_v2.csv"
+
 # copy these helper here from utils/io.py
 # Function to read a table with the specified data types
 def read_meta_table(table_path,dtypes_dict):
@@ -34,9 +41,30 @@ def get_dtypes_dict(cde_df):
     
     return dtypes_dict
 
+def read_CDE(cde_path: str|Path) -> tuple[pd.DataFrame, dict]:
+    """Load CDE from local csv and cache it, return a dataframe and dictionary of dtypes"""
+    # # Construct the path to CSD.csv
+    # # google id for ASAP_CDE sheet
+    # GOOGLE_SHEET_ID = "1xjxLftAyD0B8mPuOKUp5cKMKjkcsrp_zr9yuVULBLG8"
+    # sheet_name = "ASAP_CDE_v2"
+    # cde_url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
 
-DATASET_ID = "ASAP_PMBDS"
-STUDY_PREFIX = f"{DATASET_ID}_"
+    try:
+        CDE_df = pd.read_csv(cde_url)
+    except Exception as e:
+        print("try local file")
+        try:
+            CDE_df = pd.read_csv("ASAP_CDE_v2.csv")
+        except FileNotFoundError:
+
+            # If the local file doesn't exist, return an error
+            print("Error: Both path and local file are not available.")
+            CDE_df = None
+
+    dtypes_dict = get_dtypes_dict(CDE_df)
+    return CDE_df, dtypes_dict
+
+
 
 
 def load_id_mapper(id_mapper_path:Path) -> dict:
@@ -322,31 +350,6 @@ def generate_asap_sample_ids(asapid_mapper:dict,
     # print(ud_sampleid_mapper)
     return ud_sampleid_mapper, out_df
 
-def read_CDE():
-    """Load CDE from local csv and cache it, return a dataframe and dictionary of dtypes"""
-    # Construct the path to CSD.csv
-    # google id for ASAP_CDE sheet
-    GOOGLE_SHEET_ID = "1xjxLftAyD0B8mPuOKUp5cKMKjkcsrp_zr9yuVULBLG8"
-
-    sheet_name = "ASAP_CDE_v2"
-    
-    cde_url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
-
-    try:
-        CDE_df = pd.read_csv(cde_url)
-    except Exception as e:
-        print("try local file")
-        try:
-            CDE_df = pd.read_csv(f"{sheet_name}.csv")
-        except FileNotFoundError:
-
-            # If the local file doesn't exist, return an error
-            print("Error: Both URL and local file are not available.")
-            CDE_df = None
-
-    dtypes_dict = get_dtypes_dict(CDE_df)
-    return CDE_df, dtypes_dict
-
 
 
 def process_meta_files(table_path, 
@@ -384,15 +387,8 @@ def process_meta_files(table_path,
         sourceid_mapper = {}
         print(f"{source_mapper_path} not found... starting from scratch")
 
-
-    # if CDE_path.exists():
-    #     CDE = pd.read_csv(CDE_path )
-    # else:
-    #     print(f"{CDE_path} not found... aborting")
-    #     return 0
-    # dtypes_dict = get_dtypes_dict(CDE)
     
-    CDE, dtypes_dict = read_CDE()
+    CDE, dtypes_dict = read_CDE(CDE_path)
     if CDE is None:
         return 0
     
@@ -457,16 +453,10 @@ def process_meta_files(table_path,
         data_df = read_meta_table(data_path, dtypes_dict)
 
 
-    # once we update the CDE so CLINPATH has subject level data we can add this
-    # # add ASAP_subject_id to the CLINPATH tables
-    # clinpath_path = table_path / "CLINPATH.csv"
-    # if clinpath_path.exists():
-    #     clinpath_df = read_meta_table(clinpath_path, dtypes_dict)
-
-    #     clinpath_df['ASAP_subject_id'] = clinpath_df['subject_id'].map(id_mapper)
-
     # export updated tables
     if export_path is not None:
+
+        #HACK: do we want to specify the full export path, or separate by team ID?
         asap_tables_path = export_path / study_df.ASAP_team_id[0]
         print(f"exporting to {asap_tables_path}")
         if  not asap_tables_path.exists():
@@ -519,14 +509,7 @@ if __name__ == "__main__":
     # Parse the arguments
     args = parser.parse_args()
 
-    ## HACK: testing code below overriding the CLI
-
-    ## get thd CDE to properly read in the meta data tables
-    # CDE_path = Path.cwd() / "ASAP_CDE_v2.csv" 
-    # CDE = pd.read_csv(CDE_path )
-    # # Initialize the data types dictionary
-    # dtypes_dict = get_dtypes_dict(CDE)
-    CDE_path = Path(args.cde) / "ASAP_CDE_v2.csv"
+    CDE_path = Path(args.cde) / ASAP_CDE
    
     subject_mapper_path = Path(args.map) / f"ASAP_subj_{args.suf}.json"
     sample_mapper_path = Path(args.map) / f"ASAP_samp_{args.suf}.json"
@@ -545,60 +528,4 @@ if __name__ == "__main__":
                         source_mapper_path = source_mapper_path,
                         export_path = export_root)
     
-
-    # team_path = "clean/team-Hardy/v2_20231109"
-    # data_path = Path.cwd() / team_path
-    #  ## add team Lee
-    # table_root = Path(args.tables) / team_path
-    # export_root = Path.cwd() / "ASAP_tables"
-    
-    # process_meta_files(table_root, 
-    #                     CDE_path, 
-    #                     subject_mapper_path=subject_mapper_path, 
-    #                     sample_mapper_path=sample_mapper_path, 
-    #                     gp2_mapper_path=gp2_mapper_path,
-    #                     source_mapper_path = source_mapper_path,
-    #                     export_path = export_root)
-    
-    # team_path = "clean/team-Hafler/v2_20231109"
-    # data_path = Path.cwd() / team_path
-    #  ## add team Lee
-    # table_root = Path(args.tables) / team_path
-    # export_root = Path.cwd() / "ASAP_tables"
-    
-    # process_meta_files(table_root, 
-    #                     CDE_path, 
-    #                     subject_mapper_path=subject_mapper_path, 
-    #                     sample_mapper_path=sample_mapper_path, 
-    #                     gp2_mapper_path=gp2_mapper_path,
-    #                     source_mapper_path = source_mapper_path,
-    #                     export_path = export_root)
-    
-    # team_path = "clean/team-Lee/v2_20231109"
-    # data_path = Path.cwd() / team_path
-    #  ## add team Lee
-    # table_root = Path(args.tables) / team_path
-    # export_root = Path.cwd() / "ASAP_tables"
-    
-    # process_meta_files(table_root, 
-    #                     CDE_path, 
-    #                     subject_mapper_path=subject_mapper_path, 
-    #                     sample_mapper_path=sample_mapper_path, 
-    #                     gp2_mapper_path=gp2_mapper_path,
-    #                     source_mapper_path = source_mapper_path,
-    #                     export_path = export_root)
-    
-    # team_path = "clean/team-Test/v2_20231111"
-    # data_path = Path.cwd() / team_path
-    #  ## add team Lee
-    # table_root = Path(args.tables) / team_path
-    # export_root = Path.cwd() / "ASAP_tables"
-    
-    # process_meta_files(table_root, 
-    #                     CDE_path, 
-    #                     subject_mapper_path=subject_mapper_path, 
-    #                     sample_mapper_path=sample_mapper_path, 
-    #                     gp2_mapper_path=gp2_mapper_path,
-    #                     source_mapper_path = source_mapper_path,
-    #                     export_path = export_root)
     
