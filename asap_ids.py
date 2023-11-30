@@ -50,7 +50,7 @@ def read_CDE(cde_path: str|Path) -> tuple[pd.DataFrame, dict]:
     # cde_url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
 
     try:
-        CDE_df = pd.read_csv(cde_url)
+        CDE_df = pd.read_csv(cde_path)
     except Exception as e:
         print("try local file")
         try:
