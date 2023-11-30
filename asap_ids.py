@@ -109,15 +109,11 @@ def write_id_mapper(id_mapper, id_mapper_path):
     return 0
 
 
-def get_samp(v):
+def get_sampr(v):
     return int(v.split("_")[3].replace("s","")) 
 
 def get_id(v):
     return v[:17] 
-
-def get_repn(v):
-    return int(v.split("_")[4].replace("r","")) 
-
 
 def generate_asap_subject_ids(asapid_mapper:dict,
                              gp2id_mapper:dict,
@@ -295,28 +291,25 @@ def generate_asap_sample_ids(asapid_mapper:dict,
    
         asap_id = asapid_mapper[subj_id]
         if bool(ud_sampleid_mapper):
-            sns = [get_samp(v) for v in ud_sampleid_mapper.values() if get_id(v)==asap_id]
+            # see if there are any samples already with this asap_id
+            sns = [get_sampr(v) for v in ud_sampleid_mapper.values() if get_id(v)==asap_id]
             if len(sns) > 0: 
-                n = max(sns) + 1            
-            else: # get the hightest number
-                sns = [get_samp(v) for v in ud_sampleid_mapper.values() ]
-                n = max(sns) + 1            
+                rep_n = max(sns) + 1            
+            else: 
+                rep_n = 1   # start incrimenting from 1        
         else: # empty dicitonary. starting from scratch
-            n = 1
+            rep_n = 1
+
 
         if nodups.shape[0]>0:
             # ASSIGN IDS
-            asap_nodups = [f'{asap_id}_s{i+n:03}' for i in range(nodups.shape[0])]
+            asap_nodups = [f'{asap_id}_s{rep_n+i:03}' for i in range(nodups.shape[0])]
             # nodups['ASAP_sample_id'] = asap_nodups
             nodups.loc[:, 'ASAP_sample_id'] = asap_nodups
-            n = n + nodups.shape[0]
+            rep_n = rep_n + nodups.shape[0]
             samples_nodups = nodups['sample_id'].unique()
 
             nodup_mapper = dict(zip(nodups['sample_id'],asap_nodups))
-            # df_subset['samp_rep_no'] = [f'r{i+1:02}' for i in range(df_subset.shape[0])]
-            # # make a new column with the asap_sample_id
-            # # and insert it at the beginning of the dataframe
-            # df_subset['ASAP_sample_id'] = df_subset['asap_sample'] + '_' + df_subset['samp_rep_no']
 
             df_chunks.append(nodups)
         else:
@@ -330,9 +323,9 @@ def generate_asap_sample_ids(asapid_mapper:dict,
                     asap_dup = nodup_mapper[dup_id]                    
                 else:
                     # then assign ids to the rest.
-                    asap_dup = f'{asap_id}_s{n:03}'
+                    asap_dup = f'{asap_id}_s{rep_n:03}'
                     dups.loc[dups.sample_id==dup_id, 'ASAP_sample_id'] = asap_dup
-                    n += 1
+                    rep_n += 1
             df_chunks.append(dups)
 
 
