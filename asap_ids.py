@@ -444,6 +444,7 @@ def process_meta_files(table_path,
     data_path = table_path / "DATA.csv"
     if data_path.exists():
         data_df = read_meta_table(data_path, dtypes_dict)
+        data_df['ASAP_sample_id'] = data_df['sample_id'].map(sampleid_mapper)
 
 
     # export updated tables
@@ -466,7 +467,7 @@ def process_meta_files(table_path,
         if clinpath_path.exists():
             clinpath_df.to_csv(asap_tables_path / clinpath_path.name)
         if data_path.exists():
-            data_df.to_csv(asap_tables_path / clinpath_path.name)
+            data_df.to_csv(asap_tables_path / data_path.name)
     else:
         print("no ASAP_tables with ASAP_ID's exported")
 
