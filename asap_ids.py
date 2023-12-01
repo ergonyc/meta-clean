@@ -196,7 +196,7 @@ def generate_asap_subject_ids(asapid_mapper:dict,
 
         # TODO: add AMPPD_id test/mapper 
 
-        # check if source_id is known
+        # check if subj_id is known
         add_subj_id = False
         # check if subj_id (subject_id) is known
         if subj_id in set(asapid_mapper.keys()): # duplicate!!
