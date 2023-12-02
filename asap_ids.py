@@ -115,6 +115,7 @@ def get_sampr(v):
 def get_id(v):
     return v[:17] 
 
+
 def generate_asap_subject_ids(asapid_mapper:dict,
                              gp2id_mapper:dict,
                              sourceid_mapper:dict, 
@@ -250,18 +251,14 @@ def generate_asap_subject_ids(asapid_mapper:dict,
 
 
     df_dups_wids = pd.concat(df_dup_chunks)
-
-    ASAP_subject_id = df_dups_wids['subject_id'].map(asapid_mapper)
-    df_dups_wids.insert(0, 'ASAP_subject_id', ASAP_subject_id)
-
+    assert df_dups_wids.equals(subject_df)
     print(f"added {n_asap_id_add} new asap_subject_ids")
     print(f"added {n_gp2_id_add} new gp2_ids")
     print(f"added {n_source_id_add} new source_ids")
 
     # print(id_source)
 
-    return asapid_mapper, gp2id_mapper, sourceid_mapper, df_dups_wids, nstart
-
+    return asapid_mapper, gp2id_mapper, sourceid_mapper
 
 def generate_asap_sample_ids(asapid_mapper:dict, 
                              sample_df:pd.DataFrame, 
@@ -274,16 +271,28 @@ def generate_asap_sample_ids(asapid_mapper:dict,
     """
 
     ud_sampleid_mapper = sampleid_mapper.copy()
-    # 
-    uniq_subj = sample_df.subject_id.unique()
+    
+
+    uniq_samp = sample_df.sample_id.unique()
+    if samp_intersec := set(uniq_samp) & set(ud_sampleid_mapper.keys()): 
+        print(f"found {len(samp_intersec)} sample_id's that have already been mapped!! BEWARE a sample_id naming collision!! If you are just reprocessing tables, it shoud be okay.")
+
+
+    to_map = sample_df[~sample_df['sample_id'].apply(lambda x: x in samp_intersec)].copy()
+
+    if not bool(to_map.shape[0]): 
+        print("Nothing to see here... move along... move along .... \nNo new sample_ids to map")
+        return ud_sampleid_mapper
+
+    uniq_subj = to_map.subject_id.unique()
     # check for subject_id collisions in the sampleid_mapper
-    if intersec := set(uniq_subj) & set(ud_sampleid_mapper.values()): 
-        print(f"found {len(intersec)} subject_id collisions in the sampleid_mapper")
+    if subj_intersec := set(uniq_subj) & set(ud_sampleid_mapper.values()): 
+        print(f"found {len(subj_intersec)} subject_id collisions in the sampleid_mapper")
         
     df_chunks = []
     for subj_id in uniq_subj:
 
-        df_subset = sample_df[sample_df.subject_id==subj_id].copy()
+        df_subset = to_map[to_map.subject_id==subj_id].copy()
         asap_id = asapid_mapper[subj_id]
 
         dups = df_subset[df_subset.duplicated(keep=False, subset=['sample_id'])].sort_values('sample_id').reset_index(drop = True).copy()
@@ -336,12 +345,8 @@ def generate_asap_sample_ids(asapid_mapper:dict,
     ud_sampleid_mapper.update(id_mapper)
 
 
-    out_df = sample_df.copy()
-    ASAP_sample_id = out_df['sample_id'].map(ud_sampleid_mapper)
-    out_df.insert(0, 'ASAP_sample_id', ASAP_sample_id)
-
     # print(ud_sampleid_mapper)
-    return ud_sampleid_mapper, out_df
+    return ud_sampleid_mapper
 
 
 
@@ -415,7 +420,11 @@ def process_meta_files(table_path,
                                             gp2id_mapper,
                                             sourceid_mapper, 
                                             subject_df)
-        asapid_mapper, gp2id_mapper,sourceid_mapper, subject_df, n = output
+        asapid_mapper, gp2id_mapper,sourceid_mapper = output
+
+        ASAP_subject_id = subject_df['subject_id'].map(asapid_mapper)
+        subject_df.insert(0, 'ASAP_subject_id', ASAP_subject_id)
+
         # # add ASAP_dataset_id = DATASET_ID to the SUBJECT tables
         # subject_df['ASAP_dataset_id'] = DATASET_ID
     else:
@@ -427,8 +436,12 @@ def process_meta_files(table_path,
     sample_path = table_path / "SAMPLE.csv"
     if sample_path.exists():
         sample_df = read_meta_table(sample_path, dtypes_dict)
-        sampleid_mapper, sample_df = generate_asap_sample_ids(asapid_mapper, sample_df, sampleid_mapper)
+        sampleid_mapper = generate_asap_sample_ids(asapid_mapper, sample_df, sampleid_mapper)
         sample_df['ASAP_dataset_id'] = DATASET_ID
+
+        ASAP_sample_id = sample_df['sample_id'].map(sampleid_mapper)
+        sample_df.insert(0, 'ASAP_sample_id', ASAP_sample_id)
+
     else:
         sample_df = None
         print(f"{sample_path} not found... aborting")
@@ -479,7 +492,6 @@ def process_meta_files(table_path,
     write_id_mapper(sampleid_mapper, sample_mapper_path)
 
     return 1
-
 
 
 #########  script to generate the asap_ids.json file #####################
