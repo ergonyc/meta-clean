@@ -74,3 +74,25 @@ def extract_hashes_from_gcloudstorage(source_hash):
 
 
     return crcs, md5s
+
+
+
+# Function to parse the file to extract crc32c and filenames
+def extract_hashes_from_gsutil(source_hash):
+
+    crcs = {}
+    md5s = {}
+
+    with open(source_hash, "r") as f:
+        lines = f.readlines()
+        current_file = None
+        for line in lines:
+            if line.startswith("Hashes [hex]"):
+                current_file = line.strip().rstrip(":")
+                current_file = current_file.split("/")[-1]
+            if "Hash (crc32c)" in line:
+                crcs[current_file] = line.split(":")[1].strip()
+            if "Hash (md5)" in line:
+                md5s[current_file] = line.split(":")[1].strip()
+
+    return crcs, md5s

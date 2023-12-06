@@ -251,7 +251,7 @@ def generate_asap_subject_ids(asapid_mapper:dict,
 
 
     df_dups_wids = pd.concat(df_dup_chunks)
-    assert df_dups_wids.equals(subject_df)
+    assert df_dups_wids.sort_index().equals(subject_df)
     print(f"added {n_asap_id_add} new asap_subject_ids")
     print(f"added {n_gp2_id_add} new gp2_ids")
     print(f"added {n_source_id_add} new source_ids")
