@@ -131,7 +131,12 @@ def prep_table(df_in:pd.DataFrame, CDE:pd.DataFrame) -> pd.DataFrame:
     return df
 
 def reorder_table_to_CDE(df: pd.DataFrame, df_name:str, CDE: pd.DataFrame) -> pd.DataFrame:
-    """ convert table to CDE field order and create empty columns for missing fields"""
+    """ convert table to CDE field order and create empty columns for missing fields
+        NOTE:  this causes the encoding of NULLs in the input table to be lost.  They end up encoded as "<NA>" strings
+        Always run io.sanitize() after this function to re-encode NULLs
+        TODO: fix this
+    
+    """
     col_order = CDE[CDE["Table"]==df_name].Field.tolist()
     
     df_out = pd.DataFrame()

@@ -231,16 +231,19 @@ def generate_asap_subject_ids(asapid_mapper:dict,
         
         src = []
         if add_subj_id:
+            # TODO:  instead of just adding we should check if it exists...
             asapid_mapper[subj_id] = asap_subject_id
             n_asap_id_add += 1
             src.append('asap')
 
         if add_gp2_id and gp2_id is not None:
+            # TODO:  instead of just adding we should check if it exists...
             gp2id_mapper[gp2_id] = asap_subject_id
             n_gp2_id_add += 1
             src.append('gp2')
 
         if add_source_id and source_id is not None:   
+            # TODO:  instead of just adding we should check if it exists...
             sourceid_mapper[source_id] = asap_subject_id
             n_source_id_add += 1
             src.append('source')
@@ -394,7 +397,10 @@ def process_meta_files(table_path,
     study_path = table_path / "STUDY.csv"
     if study_path.exists():
         study_df = read_meta_table(study_path, dtypes_dict)
-        team_id = study_df['ASAP_team_name'].str.upper().replace('-', '_')
+        # print(f"before: {study_df['ASAP_team_name'].str.upper()} {[ord(s) for s in study_df['ASAP_team_name'][0].upper().replace('-', '_')]}")
+        team_id = study_df['ASAP_team_name'].str.upper().replace('-', '_')  #this isn't actually replacing ...
+        # print(f"after: {team_id},  {study_df['ASAP_team_name'].str.upper().replace('-', '_')}  ")
+
         study_df['ASAP_team_id'] = team_id
         # add ASAP_dataset_id = DATASET_ID to the STUDY tables
         study_df['ASAP_dataset_id'] = DATASET_ID
@@ -524,7 +530,7 @@ if __name__ == "__main__":
 
     table_root = Path(args.tables) 
     export_root= Path(args.outdir)
-
+    print(f"exporting to:  {export_root}")
     
     process_meta_files(table_root, 
                         CDE_path, 

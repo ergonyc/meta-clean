@@ -147,6 +147,16 @@ def get_dtypes_dict(cde_df):
     
     return dtypes_dict
 
+def sanitize(df):
+    """ re encode NULLs """
+    if "path_autopsy_dx_main" in df.columns: # simple test to see if this is a CLINPATH table
+        df.replace({"<NA>":pd.NA,"nan":pd.NA,"Nan":pd.NA,"NaN":pd.NA}, inplace=True)
+    else:
+        df.replace({"<NA>":pd.NA,"None":pd.NA,"none":pd.NA,"nan":pd.NA,"Nan":pd.NA,"NaN":pd.NA}, inplace=True)    
+    return df
+
+
+
 
 # Function to get data types dictionary for a given table
 def get_dtypes_dict_all(cde_df):
